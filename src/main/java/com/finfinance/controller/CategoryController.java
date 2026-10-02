@@ -23,7 +23,7 @@ public class CategoryController {
     public ResponseEntity<List<CategoryResponse>> getCategories() {
 
         List<CategoryResponse> categories =
-                categoryRepository.findAll()
+                categoryRepository.findAllByOrderByNameAsc()
                         .stream()
                         .map(category ->
                                 new CategoryResponse(

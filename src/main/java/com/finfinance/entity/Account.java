@@ -22,7 +22,7 @@ public class Account {
     private String name;
 
     @Column(nullable = false, precision = 15, scale = 2)
-    private BigDecimal balance;
+    private BigDecimal balance = BigDecimal.ZERO;
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
