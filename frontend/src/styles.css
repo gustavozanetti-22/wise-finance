@@ -196,6 +196,12 @@ body, .app-shell { background: #f1f8f5; color: var(--ink); }
 
 @media (max-width: 860px) { .landing-links { display: none; }.landing-hero { grid-template-columns: 1fr; padding-top: 44px; }.landing-hero-copy { max-width: 650px; }.landing-preview { min-height: 340px; }.landing-feature { gap: 42px; }.landing-benefits { grid-template-columns: 1fr; gap: 15px; } }
 @media (max-width: 600px) { .landing-nav, .landing-hero, .landing-benefits, .landing-feature, .landing-final, .landing-footer { width: min(100% - 32px, 520px); }.landing-nav { height: 68px; }.landing-actions { gap: 8px; }.landing-actions .small { padding: 0 10px; }.landing-hero { padding: 35px 0 47px; }.landing-hero h1 { font-size: 48px; letter-spacing: -2.5px; }.landing-hero-actions { display: grid; }.landing-hero-actions button { width: 100%; }.landing-trust { gap: 9px; }.landing-preview { min-height: 260px; border-radius: 22px; }.preview-window { width: 95%; }.preview-body { min-height: 180px; }.preview-content { padding: 13px 10px; }.preview-content h3 { margin: 8px 0; font-size: 12px; }.preview-panels { margin-top: 6px; }.preview-chart, .preview-donut { min-height: 100px; }.preview-bars { height: 53px; }.landing-feature { grid-template-columns: 1fr; gap: 36px; padding: 68px 0; }.landing-feature-card { max-width: 400px; width: 100%; margin: 0 auto; }.landing-final { margin-bottom: 45px; padding: 45px 18px; }.landing-footer { flex-direction: column; gap: 8px; }.donut-layout { grid-template-columns: 1fr; gap: 22px; }.donut-chart { width: 170px; }.donut-legend { padding: 0 12px; }.auth-back { margin-bottom: 20px; } }
-.brand-link { appearance: none; width: 100%; border: 0; text-align: left; cursor: pointer; }
+.brand-link { appearance: none; width: 100%; border: 0; text-align: left; cursor: pointer; background: transparent; color: #fff; font: inherit; }
 .brand-link:hover { color: var(--purple); }
 .landing-brand-link { cursor: pointer; }
+.user-menu-wrap { position: relative; }
+.user-chip { border: 0; padding: 4px 0; background: transparent; cursor: pointer; font: inherit; }
+.user-chip:hover { color: var(--purple); }
+.user-menu { position: absolute; z-index: 30; top: calc(100% + 9px); right: 0; min-width: 176px; padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: #fff; box-shadow: 0 12px 30px #163d3424; }
+.user-menu button { width: 100%; display: flex; align-items: center; gap: 8px; padding: 9px 10px; border: 0; border-radius: 7px; color: #5e756d; background: transparent; font: 700 11px Manrope, sans-serif; text-align: left; cursor: pointer; }
+.user-menu button:hover { color: #b94b43; background: #fff1ef; }

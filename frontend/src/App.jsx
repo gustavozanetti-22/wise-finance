@@ -64,6 +64,7 @@ function App() {
   const [mobileNav, setMobileNav] = useState(false)
   const [authMode, setAuthMode] = useState('landing')
   const [showLanding, setShowLanding] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
 
   const notify = (message, type = 'success') => {
     setToast({ message, type })
@@ -90,7 +91,7 @@ function App() {
 
   const enterDemo = () => { setIsDemo(true); setData(demoData); setPeriod({ month: 10, year: 2026 }); notify('Você está visualizando dados de demonstração.') }
   const handleLogin = (response) => { localStorage.setItem('finfinance_token', response.token); setToken(response.token); setData({ ...data, user: response }); notify(`Bem-vindo, ${response.name.split(' ')[0]}!`) }
-  const logout = () => { localStorage.removeItem('finfinance_token'); setToken(null); setIsDemo(false); setShowLanding(false); setView('overview') }
+  const logout = () => { localStorage.removeItem('finfinance_token'); setToken(null); setIsDemo(false); setShowLanding(false); setUserMenuOpen(false); setView('overview') }
   const openLanding = () => setShowLanding(true)
   const activeData = isDemo ? demoData : data
 
@@ -116,7 +117,7 @@ function App() {
           <div className="top-actions">
             <div className="top-search"><Search size={17} /><input placeholder="Buscar transação..." /></div>
             <button className="icon-button"><Bell size={18} /><i /></button>
-            <div className="user-chip"><span className="avatar">{(activeData.user?.name || 'G').slice(0, 1).toUpperCase()}</span><span className="user-name">{activeData.user?.name || 'Gustavo'}</span><ChevronDown size={15} /></div>
+            <div className="user-menu-wrap"><button type="button" className="user-chip" onClick={() => setUserMenuOpen((open) => !open)} aria-expanded={userMenuOpen}><span className="avatar">{(activeData.user?.name || 'G').slice(0, 1).toUpperCase()}</span><span className="user-name">{activeData.user?.name || 'Gustavo'}</span><ChevronDown size={15} /></button>{userMenuOpen && <div className="user-menu"><button type="button" onClick={logout}><LogOut size={15} /> {isDemo ? 'Sair da demonstração' : 'Sair da conta'}</button></div>}</div>
           </div>
         </header>
         <div className="content-wrap">
