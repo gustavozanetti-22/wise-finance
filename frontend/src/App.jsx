@@ -63,6 +63,7 @@ function App() {
   const [toast, setToast] = useState(null)
   const [mobileNav, setMobileNav] = useState(false)
   const [authMode, setAuthMode] = useState('landing')
+  const [showLanding, setShowLanding] = useState(false)
 
   const notify = (message, type = 'success') => {
     setToast({ message, type })
@@ -89,13 +90,16 @@ function App() {
 
   const enterDemo = () => { setIsDemo(true); setData(demoData); setPeriod({ month: 10, year: 2026 }); notify('Você está visualizando dados de demonstração.') }
   const handleLogin = (response) => { localStorage.setItem('finfinance_token', response.token); setToken(response.token); setData({ ...data, user: response }); notify(`Bem-vindo, ${response.name.split(' ')[0]}!`) }
-  const logout = () => { localStorage.removeItem('finfinance_token'); setToken(null); setIsDemo(false); setView('overview') }
+  const logout = () => { localStorage.removeItem('finfinance_token'); setToken(null); setIsDemo(false); setShowLanding(false); setView('overview') }
+  const openLanding = () => setShowLanding(true)
   const activeData = isDemo ? demoData : data
 
   const mutate = async (action, message) => {
     if (isDemo) { notify('A demonstração é somente para visualização.', 'info'); return }
     try { await action(); await loadData(); setModal(null); notify(message) } catch (error) { notify(error.message, 'error') }
   }
+
+  if (showLanding) return <LandingPage onLogin={() => setShowLanding(false)} onRegister={() => setShowLanding(false)} onDemo={() => setShowLanding(false)} onBackToApp={() => setShowLanding(false)} />
 
   if (!token && !isDemo) {
     if (authMode === 'landing') return <LandingPage onLogin={() => setAuthMode('login')} onRegister={() => setAuthMode('register')} onDemo={enterDemo} />
@@ -104,7 +108,7 @@ function App() {
 
   return (
     <div className="app-shell">
-      <Sidebar view={view} setView={(next) => { setView(next); setMobileNav(false) }} mobileNav={mobileNav} logout={logout} demo={isDemo} />
+      <Sidebar view={view} setView={(next) => { setView(next); setMobileNav(false) }} mobileNav={mobileNav} logout={logout} demo={isDemo} onLanding={openLanding} />
       <main className="main-area">
         <header className="topbar">
           <button className="mobile-menu" onClick={() => setMobileNav(!mobileNav)}><Menu size={21} /></button>
@@ -138,10 +142,10 @@ function App() {
 
 function viewTitle(view) { return ({ overview: 'Visão geral', transactions: 'Transações', budgets: 'Orçamento', accounts: 'Contas', settings: 'Configurações' })[view] }
 
-function Sidebar({ view, setView, mobileNav, logout, demo }) {
+function Sidebar({ view, setView, mobileNav, logout, demo, onLanding }) {
   const items = [{ id: 'overview', label: 'Visão geral', icon: LayoutDashboard }, { id: 'transactions', label: 'Transações', icon: ArrowLeftRight }, { id: 'budgets', label: 'Orçamento', icon: Target }]
   return <aside className={`sidebar ${mobileNav ? 'sidebar-open' : ''}`}>
-    <div className="brand"><span className="brand-mark"><TrendingUp size={20} /></span><span>fin<span>finance</span></span></div>
+    <button type="button" className="brand brand-link" onClick={onLanding} title="Voltar para a apresentação"><span className="brand-mark"><TrendingUp size={20} /></span><span>fin <span>finance</span></span></button>
     <div className="sidebar-label">Menu principal</div>
     <nav>{items.map(({ id, label, icon: Icon }) => <button key={id} className={view === id ? 'nav-item active' : 'nav-item'} onClick={() => setView(id)}><Icon size={18} /><span>{label}</span>{id === 'budgets' && <em>Novo</em>}</button>)}</nav>
     <div className="sidebar-label sidebar-label-lower">Preferências</div>
@@ -206,12 +210,12 @@ function AccountForm({ item, onSubmit }) { const [form, setForm] = useState({ na
 function FormActions({ submit }) { return <div className="form-actions"><button type="button" className="outline-button" onClick={() => document.querySelector('.close-button')?.click()}>Cancelar</button><button type="submit" className="primary-button">{submit}</button></div> }
 function EmptyState({ icon, title, description, action, onAction }) { return <div className="empty-state">{icon && <div className="empty-icon">{icon}</div>}<strong>{title}</strong>{description && <p>{description}</p>}{action && <button className="primary-button small" onClick={onAction}><Plus size={15} /> {action}</button>}</div> }
 
-function LandingPage({ onLogin, onRegister, onDemo }) {
+function LandingPage({ onLogin, onRegister, onDemo, onBackToApp }) {
   return <div className="landing-page">
     <header className="landing-nav">
-      <div className="landing-brand"><span className="brand-mark"><TrendingUp size={19} /></span><span>Grana</span></div>
+      <div className="landing-brand landing-brand-link" onClick={onBackToApp} role={onBackToApp ? "button" : undefined} title={onBackToApp ? "Voltar para o painel" : undefined}><span className="brand-mark"><TrendingUp size={19} /></span><span>fin <span>finance</span></span></div>
       <nav className="landing-links"><a href="#beneficios">Benefícios</a><a href="#funcionalidades">Funcionalidades</a><a href="#como-funciona">Como funciona</a></nav>
-      <div className="landing-actions"><button className="landing-login" onClick={onLogin}>Entrar</button><button className="primary-button small" onClick={onRegister}>Criar conta <ChevronRight size={15} /></button></div>
+      <div className="landing-actions"><button className="landing-login" onClick={onBackToApp || onLogin}>{onBackToApp ? "Voltar ao painel" : "Entrar"}</button><button className="primary-button small" onClick={onBackToApp || onRegister}>{onBackToApp ? "Ir para o painel" : "Criar conta"} <ChevronRight size={15} /></button></div>
     </header>
     <main>
       <section className="landing-hero">
