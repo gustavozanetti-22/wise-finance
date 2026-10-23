@@ -62,6 +62,7 @@ function App() {
   const [modal, setModal] = useState(null)
   const [toast, setToast] = useState(null)
   const [mobileNav, setMobileNav] = useState(false)
+  const [authMode, setAuthMode] = useState('landing')
 
   const notify = (message, type = 'success') => {
     setToast({ message, type })
@@ -96,7 +97,10 @@ function App() {
     try { await action(); await loadData(); setModal(null); notify(message) } catch (error) { notify(error.message, 'error') }
   }
 
-  if (!token && !isDemo) return <AuthScreen onLogin={handleLogin} onDemo={enterDemo} notify={notify} />
+  if (!token && !isDemo) {
+    if (authMode === 'landing') return <LandingPage onLogin={() => setAuthMode('login')} onRegister={() => setAuthMode('register')} onDemo={enterDemo} />
+    return <AuthScreen initialMode={authMode} onLogin={handleLogin} onDemo={enterDemo} notify={notify} onBack={() => setAuthMode('landing')} />
+  }
 
   return (
     <div className="app-shell">
@@ -135,7 +139,7 @@ function App() {
 function viewTitle(view) { return ({ overview: 'Visão geral', transactions: 'Transações', budgets: 'Orçamento', accounts: 'Contas', settings: 'Configurações' })[view] }
 
 function Sidebar({ view, setView, mobileNav, logout, demo }) {
-  const items = [{ id: 'overview', label: 'Visão geral', icon: LayoutDashboard }, { id: 'transactions', label: 'Transações', icon: ArrowLeftRight }, { id: 'budgets', label: 'Orçamento', icon: Target }, { id: 'accounts', label: 'Contas', icon: WalletCards }]
+  const items = [{ id: 'overview', label: 'Visão geral', icon: LayoutDashboard }, { id: 'transactions', label: 'Transações', icon: ArrowLeftRight }, { id: 'budgets', label: 'Orçamento', icon: Target }]
   return <aside className={`sidebar ${mobileNav ? 'sidebar-open' : ''}`}>
     <div className="brand"><span className="brand-mark"><TrendingUp size={20} /></span><span>fin<span>finance</span></span></div>
     <div className="sidebar-label">Menu principal</div>
@@ -163,8 +167,18 @@ function Overview({ data, period, setView }) {
 function MetricCard({ label, value, helper, icon, tone, trend }) { return <div className="metric-card"><div className={`metric-icon ${tone}`}>{icon}</div><div className="metric-copy"><span>{label}</span><strong>{value}</strong><small>{helper}</small></div>{trend && <b className={`metric-trend ${tone}`}>{trend}</b>}</div> }
 
 function SpendingCard({ dashboard }) {
-  const values = [42, 56, 49, 68, 57, 78, 64, 87, 72, 59, 76, 63]
-  return <div className="panel spending-panel"><div className="panel-heading"><div><h2>Visão de gastos</h2><p>Compare suas despesas ao longo do mês</p></div><button className="ghost-button">Este mês <ChevronDown size={14} /></button></div><div className="chart-summary"><div><span>Total gasto</span><strong>{currency(dashboard.totalExpense)}</strong></div><div className="chart-legend"><span><i className="legend-dot purple-dot" />Despesas</span><span><i className="legend-dot gray-dot" />Orçamento</span></div></div><div className="bar-chart">{values.map((height, index) => <div className="bar-group" key={index}><div className="chart-bar"><span style={{ height: `${height}%` }} /></div><small>{['01', '03', '05', '07', '09', '11', '13', '15', '17', '19', '21', '23'][index]}</small></div>)}</div></div>
+  const palette = ['#0d6444', '#2eaa78', '#ee8a78', '#f2b84b', '#3e9c8b']
+  const categories = dashboard.expensesByCategory?.slice(0, 5) || []
+  const total = categories.reduce((sum, item) => sum + Number(item.amount || 0), 0)
+  let cursor = 0
+  const segments = categories.map((item, index) => {
+    const percentage = total ? (Number(item.amount || 0) / total) * 100 : 0
+    const segment = palette[index % palette.length] + ' ' + cursor + '% ' + (cursor + percentage) + '%'
+    cursor += percentage
+    return { ...item, percentage, segment, color: palette[index % palette.length] }
+  })
+  const background = segments.length ? 'conic-gradient(' + segments.map((item) => item.segment).join(', ') + ')' : '#dcece5'
+  return <div className="panel spending-panel"><div className="panel-heading"><div><h2>Onde foi meu dinheiro?</h2><p>Distribuição das despesas por categoria</p></div><button className="ghost-button">Este mês <ChevronDown size={14} /></button></div><div className="donut-layout"><div className="donut-chart" style={{ background }}><div className="donut-hole"><span>Total gasto</span><strong>{currency(dashboard.totalExpense)}</strong></div></div><div className="donut-legend">{segments.map((item) => <div className="donut-legend-row" key={item.categoryId}><span><i style={{ background: item.color }} />{item.categoryName}</span><strong>{currency(item.amount)}</strong></div>)}{segments.length === 0 && <span className="muted">Nenhuma despesa neste período.</span>}</div></div></div>
 }
 
 function RecentTransactions({ transactions = [], setView }) { return <div className="panel recent-panel"><div className="panel-heading"><div><h2>Transações recentes</h2><p>Suas últimas movimentações</p></div><button className="text-button" onClick={() => setView('transactions')}>Ver todas <ChevronRight size={15} /></button></div><div className="transaction-list">{transactions.slice(0, 5).map((transaction) => <TransactionRow key={transaction.id} transaction={transaction} />)}</div>{transactions.length === 0 && <EmptyState icon={<ReceiptText />} title="Nenhuma transação neste período" />}</div> }
@@ -192,6 +206,34 @@ function AccountForm({ item, onSubmit }) { const [form, setForm] = useState({ na
 function FormActions({ submit }) { return <div className="form-actions"><button type="button" className="outline-button" onClick={() => document.querySelector('.close-button')?.click()}>Cancelar</button><button type="submit" className="primary-button">{submit}</button></div> }
 function EmptyState({ icon, title, description, action, onAction }) { return <div className="empty-state">{icon && <div className="empty-icon">{icon}</div>}<strong>{title}</strong>{description && <p>{description}</p>}{action && <button className="primary-button small" onClick={onAction}><Plus size={15} /> {action}</button>}</div> }
 
-function AuthScreen({ onLogin, onDemo, notify }) { const [mode, setMode] = useState('login'); const [form, setForm] = useState({ name: '', email: '', password: '' }); const [loading, setLoading] = useState(false); const submit = async (event) => { event.preventDefault(); setLoading(true); try { const response = mode === 'login' ? await api.login({ email: form.email, password: form.password }) : await api.register(form).then(() => api.login({ email: form.email, password: form.password })); onLogin(response) } catch (error) { notify(error.message, 'error') } finally { setLoading(false) } }; return <div className="auth-screen"><div className="auth-art"><div className="auth-brand"><span className="brand-mark"><TrendingUp size={20} /></span>fin<span>finance</span></div><div className="auth-art-copy"><span className="auth-kicker">Sua vida financeira, mais leve.</span><h1>Clareza para<br /><em>cada escolha.</em></h1><p>Organize seu dinheiro, acompanhe seus objetivos e construa um futuro mais tranquilo.</p></div><div className="auth-art-stat"><TrendingUp size={18} /><div><strong>+ 18,6%</strong><span>de evolução este mês</span></div></div></div><div className="auth-form-wrap"><div className="auth-form"><div className="mobile-auth-brand"><span className="brand-mark"><TrendingUp size={20} /></span>fin<span>finance</span></div><span className="eyebrow">{mode === 'login' ? 'Bem-vindo de volta' : 'Comece agora'}</span><h2>{mode === 'login' ? 'Acesse sua conta' : 'Crie sua conta'}</h2><p className="muted">{mode === 'login' ? 'Entre para continuar seu controle financeiro.' : 'Leva menos de um minuto para começar.'}</p><form onSubmit={submit}>{mode === 'register' && <label className="field"><span>Nome completo</span><input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Como podemos te chamar?" /></label>}<label className="field"><span>E-mail</span><input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="voce@email.com" /></label><label className="field"><span>Senha</span><input required minLength="6" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="••••••••" /></label><button className="primary-button auth-submit" disabled={loading}>{loading ? 'Aguarde...' : mode === 'login' ? 'Entrar na conta' : 'Criar minha conta'} <ChevronRight size={17} /></button></form><div className="auth-divider"><span>ou</span></div><button className="outline-button demo-button" onClick={onDemo}>Explorar demonstração</button><p className="auth-switch">{mode === 'login' ? 'Ainda não tem uma conta?' : 'Já possui uma conta?'} <button onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>{mode === 'login' ? 'Criar agora' : 'Entrar'}</button></p></div></div></div> }
+function LandingPage({ onLogin, onRegister, onDemo }) {
+  return <div className="landing-page">
+    <header className="landing-nav">
+      <div className="landing-brand"><span className="brand-mark"><TrendingUp size={19} /></span><span>Grana</span></div>
+      <nav className="landing-links"><a href="#beneficios">Benefícios</a><a href="#funcionalidades">Funcionalidades</a><a href="#como-funciona">Como funciona</a></nav>
+      <div className="landing-actions"><button className="landing-login" onClick={onLogin}>Entrar</button><button className="primary-button small" onClick={onRegister}>Criar conta <ChevronRight size={15} /></button></div>
+    </header>
+    <main>
+      <section className="landing-hero">
+        <div className="landing-hero-copy">
+          <span className="landing-kicker"><CheckCircle2 size={15} /> Finanças mais leves, decisões mais inteligentes</span>
+          <h1>Sua grana.<br /><em>Suas regras.</em></h1>
+          <p>Organize seus gastos, planeje seus objetivos e entenda seu dinheiro de um jeito simples, visual e sem julgamentos.</p>
+          <div className="landing-hero-actions"><button className="primary-button" onClick={onRegister}>Começar de graça <ChevronRight size={17} /></button><button className="outline-button" onClick={onDemo}>Conhecer a plataforma <ChevronRight size={16} /></button></div>
+          <div className="landing-trust"><span><CheckCircle2 size={14} /> Grátis para começar</span><span><CheckCircle2 size={14} /> Sem cartão</span><span><CheckCircle2 size={14} /> Seus dados protegidos</span></div>
+        </div>
+        <div className="landing-preview" aria-label="Prévia do painel FinFinance">
+          <div className="preview-window"><div className="preview-top"><span className="preview-dots"><i /><i /><i /></span><span className="preview-url">app.finfinance.com</span><span className="preview-avatar">G</span></div><div className="preview-body"><aside><div className="preview-logo"><TrendingUp size={14} /></div><span className="preview-nav active" /><span className="preview-nav" /><span className="preview-nav" /><span className="preview-nav" /></aside><div className="preview-content"><div className="preview-greeting"><span>Olá, Gustavo!</span><b>Outubro 2026</b></div><h3>Visão geral</h3><div className="preview-metrics"><i /><i /><i /></div><div className="preview-panels"><div className="preview-chart"><span className="preview-heading" /><div className="preview-bars"><b /><b /><b /><b /><b /><b /><b /></div></div><div className="preview-donut"><span /><div /></div></div></div></div></div>
+        </div>
+      </section>
+      <section className="landing-benefits" id="beneficios"><div><CheckCircle2 size={18} /><strong>Tudo sobre sua vida financeira em um só lugar</strong></div><div><TrendingUp size={18} /><strong>Orientação em uma linguagem que faz sentido</strong></div><div><WalletCards size={18} /><strong>Privacidade e segurança desde o primeiro acesso</strong></div></section>
+      <section className="landing-feature" id="funcionalidades"><div className="landing-feature-copy"><span className="eyebrow">Feito para a vida real</span><h2>Cuidar do dinheiro não precisa ser um peso</h2><p>Tenha uma visão clara das suas movimentações, acompanhe seus limites e faça escolhas com mais tranquilidade.</p><button className="text-button" onClick={onRegister}>Quero organizar minha vida financeira <ChevronRight size={15} /></button></div><div className="landing-feature-card"><div className="feature-card-title"><strong>Onde foi meu dinheiro?</strong><span>Este mês</span></div><div className="feature-donut"><div><strong>R$ 2.559</strong><span>despesas</span></div></div><div className="feature-legend"><span><i className="feature-dot green" />Moradia <b>R$ 1.800</b></span><span><i className="feature-dot orange" />Alimentação <b>R$ 654</b></span><span><i className="feature-dot blue" />Transporte <b>R$ 49</b></span></div></div></section>
+      <section className="landing-final" id="como-funciona"><span className="eyebrow">Seu próximo passo começa aqui</span><h2>Mais clareza para viver o seu dinheiro.</h2><button className="primary-button" onClick={onRegister}>Criar minha conta <ChevronRight size={17} /></button></section>
+    </main>
+    <footer className="landing-footer"><span>Grana</span><span>Seu dinheiro, do seu jeito.</span></footer>
+  </div>
+}
+
+function AuthScreen({ initialMode = 'login', onLogin, onDemo, notify, onBack }) { const [mode, setMode] = useState(initialMode); const [form, setForm] = useState({ name: '', email: '', password: '' }); const [loading, setLoading] = useState(false); const submit = async (event) => { event.preventDefault(); setLoading(true); try { const response = mode === 'login' ? await api.login({ email: form.email, password: form.password }) : await api.register(form).then(() => api.login({ email: form.email, password: form.password })); onLogin(response) } catch (error) { notify(error.message, 'error') } finally { setLoading(false) } }; return <div className="auth-screen"><div className="auth-art"><div className="auth-brand"><span className="brand-mark"><TrendingUp size={20} /></span>fin<span>finance</span></div><div className="auth-art-copy"><span className="auth-kicker">Sua vida financeira, mais leve.</span><h1>Clareza para<br /><em>cada escolha.</em></h1><p>Organize seu dinheiro, acompanhe seus objetivos e construa um futuro mais tranquilo.</p></div><div className="auth-art-stat"><TrendingUp size={18} /><div><strong>+ 18,6%</strong><span>de evolução este mês</span></div></div></div><div className="auth-form-wrap"><div className="auth-form"><div className="mobile-auth-brand"><span className="brand-mark"><TrendingUp size={20} /></span>fin<span>finance</span></div>{onBack && <button className="auth-back" onClick={onBack}><ArrowLeftRight size={14} /> Voltar para apresentação</button>}<span className="eyebrow">{mode === 'login' ? 'Bem-vindo de volta' : 'Comece agora'}</span><h2>{mode === 'login' ? 'Acesse sua conta' : 'Crie sua conta'}</h2><p className="muted">{mode === 'login' ? 'Entre para continuar seu controle financeiro.' : 'Leva menos de um minuto para começar.'}</p><form onSubmit={submit}>{mode === 'register' && <label className="field"><span>Nome completo</span><input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Como podemos te chamar?" /></label>}<label className="field"><span>E-mail</span><input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="voce@email.com" /></label><label className="field"><span>Senha</span><input required minLength="6" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="••••••••" /></label><button className="primary-button auth-submit" disabled={loading}>{loading ? 'Aguarde...' : mode === 'login' ? 'Entrar na conta' : 'Criar minha conta'} <ChevronRight size={17} /></button></form><div className="auth-divider"><span>ou</span></div><button className="outline-button demo-button" onClick={onDemo}>Explorar demonstração</button><p className="auth-switch">{mode === 'login' ? 'Ainda não tem uma conta?' : 'Já possui uma conta?'} <button onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>{mode === 'login' ? 'Criar agora' : 'Entrar'}</button></p></div></div></div> }
 
 export default App
