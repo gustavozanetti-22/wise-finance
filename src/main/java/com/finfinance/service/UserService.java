@@ -24,18 +24,7 @@ public class UserService {
     }
 
     public UserResponse register(RegisterRequest request) {
-
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new EmailAlreadyExistsException("E-mail already registered.");
-        }
-
-        User user = new User();
-
-        user.setName(request.getName());
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-
-        User savedUser = userRepository.save(user);
+        User savedUser = registerEntity(request);
 
         return new UserResponse(
                 savedUser.getId(),
@@ -43,5 +32,18 @@ public class UserService {
                 savedUser.getEmail(),
                 savedUser.getCreatedAt()
         );
+    }
+
+    public User registerEntity(RegisterRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new EmailAlreadyExistsException("E-mail already registered.");
+        }
+
+        User user = new User();
+        user.setName(request.getName());
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+
+        return userRepository.save(user);
     }
 }
